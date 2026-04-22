@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Nutrition — Menu Journalier</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --g1:#1A5C38;--g2:#2E7D52;--gl:#E8F5EE;--gr:#F2FAF5;
+  --or:#E67E22;--bl:#2980B9;--bl2:#EAF2FB;--rd:#C0392B;
+  --gy:#F5F5F5;--gd:#666;--bk:#1A1A1A;--wh:#FFFFFF;
+  --radius:12px;--shadow:0 4px 20px rgba(26,92,56,0.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Montserrat',sans-serif;background:#EEF5F0;color:var(--bk);min-height:100vh}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,var(--g1) 0%,var(--g2) 60%,#3A9D68 100%);padding:24px 36px;position:relative;overflow:hidden}
+.header::before{content:'';position:absolute;right:-40px;top:-40px;width:220px;height:220px;border-radius:50%;background:rgba(255,255,255,0.06)}
+.header::after{content:'';position:absolute;right:120px;bottom:-60px;width:140px;height:140px;border-radius:50%;background:rgba(255,255,255,0.04)}
+.header-inner{display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:1}
+.header h1{font-family:'Playfair Display',serif;font-size:24px;color:#fff;letter-spacing:-0.3px}
+.header p{font-size:10px;color:rgba(255,255,255,0.6);margin-top:4px;letter-spacing:0.4px}
+.header-meta{text-align:right}
+.badge{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#fff;font-size:9px;font-weight:700;padding:5px 12px;border-radius:20px;letter-spacing:1px;text-transform:uppercase;display:inline-block;margin-bottom:6px}
+.vnr-note{font-size:9px;color:rgba(255,255,255,0.5);max-width:260px;line-height:1.4;text-align:right}
+
+/* TABS */
+.tabs{background:#fff;border-bottom:2px solid #E5EDE9;padding:0 36px;display:flex;gap:0}
+.tab{padding:14px 22px;font-size:11px;font-weight:700;color:var(--gd);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all 0.2s;letter-spacing:0.3px;text-transform:uppercase}
+.tab:hover{color:var(--g1);background:var(--gl)}
+.tab.active{color:var(--g1);border-bottom-color:var(--g1)}
+
+/* MAIN */
+.main{padding:24px 36px;max-width:1400px;margin:0 auto}
+.page{display:none}.page.active{display:block}
+
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px}
+.kpi{background:#fff;border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);border-top:4px solid var(--g1);transition:transform 0.2s}
+.kpi:hover{transform:translateY(-2px)}
+.kpi-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--gd);margin-bottom:4px}
+.kpi-val{font-size:26px;font-weight:800;line-height:1;margin:2px 0}
+.kpi-unit{font-size:9px;color:var(--gd)}
+.kpi-vnr{font-size:9px;margin-top:6px;font-weight:600;padding:3px 8px;border-radius:10px;display:inline-block}
+.ok{background:#E8F5EE;color:var(--g1)}.warn{background:#FEF9E7;color:var(--or)}.bad{background:#FDECEA;color:var(--rd)}
+
+/* GRID LAYOUTS */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:18px}
+.grid-1-2{display:grid;grid-template-columns:1fr 2fr;gap:18px;margin-bottom:18px}
+.grid-2-1{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-bottom:18px}
+
+/* CARDS */
+.card{background:#fff;border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow)}
+.card.full{grid-column:1/-1}
+.card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--g1);margin-bottom:3px}
+.card-sub{font-size:9px;color:var(--gd);margin-bottom:14px;font-weight:400}
+.chart-wrap{position:relative}
+
+/* VNR TABLE */
+.vnr-table{width:100%;border-collapse:collapse;font-size:10px}
+.vnr-table th{background:var(--g1);color:#fff;padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:0.3px}
+.vnr-table th:not(:first-child){text-align:center}
+.vnr-table td{padding:7px 10px;border-bottom:1px solid #F0F0F0;vertical-align:middle}
+.vnr-table td:not(:first-child){text-align:center;font-weight:600}
+.vnr-table tr:nth-child(even) td{background:var(--gy)}
+.vnr-table tr:hover td{background:var(--gl)}
+.progress-wrap{background:#EEEEEE;border-radius:6px;height:8px;min-width:80px;overflow:hidden}
+.progress-bar{height:100%;border-radius:6px;transition:width 1s ease}
+.status-ok{color:var(--g1);font-size:9px;font-weight:700;background:var(--gl);padding:2px 8px;border-radius:10px}
+.status-warn{color:var(--or);font-size:9px;font-weight:700;background:#FEF9E7;padding:2px 8px;border-radius:10px}
+.status-bad{color:var(--rd);font-size:9px;font-weight:700;background:#FDECEA;padding:2px 8px;border-radius:10px}
+
+/* ALIMENT TABLE */
+.alim-table{width:100%;border-collapse:collapse;font-size:9px}
+.alim-table th{background:var(--g1);color:#fff;padding:7px 8px;text-align:center;font-size:8px;font-weight:700;white-space:nowrap}
+.alim-table th:first-child,.alim-table th:nth-child(2),.alim-table th:nth-child(3){text-align:left}
+.alim-table td{padding:6px 8px;border-bottom:1px solid #F0F0F0;text-align:center;font-weight:500}
+.alim-table td:first-child{text-align:left;font-weight:600}
+.alim-table td:nth-child(2),.alim-table td:nth-child(3){text-align:left}
+.alim-table tr:hover td{background:var(--gl)}
+.repas-tag{font-size:8px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.tag-pdj{background:#FDF3E7;color:#C0660A}
+.tag-col{background:#E8F5EE;color:var(--g2)}
+.tag-dej{background:#EAF2FB;color:var(--bl)}
+.tag-cap{background:#FEF9E7;color:#8B5E3C}
+.tag-din{background:#FDECEA;color:var(--rd)}
+
+/* LEGEND */
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:9px;color:var(--gd)}
+.leg-dot{width:10px;height:10px;border-radius:50%}
+
+/* EMBED PAGE */
+.embed-box{background:#fff;border-radius:var(--radius);padding:28px;box-shadow:var(--shadow);margin-bottom:18px}
+.embed-box h3{font-size:14px;font-weight:700;color:var(--g1);margin-bottom:8px}
+.embed-box p{font-size:11px;color:var(--gd);line-height:1.6;margin-bottom:14px}
+.embed-input{width:100%;border:1.5px solid #DDD;border-radius:8px;padding:10px 14px;font-family:'Montserrat',sans-serif;font-size:11px;margin-bottom:10px;transition:border 0.2s}
+.embed-input:focus{outline:none;border-color:var(--g1)}
+.embed-btn{background:var(--g1);color:#fff;border:none;border-radius:8px;padding:10px 22px;font-family:'Montserrat',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:background 0.2s}
+.embed-btn:hover{background:var(--g2)}
+.iframe-wrap{border:2px solid #E5EDE9;border-radius:var(--radius);overflow:hidden;min-height:500px;background:var(--gy)}
+.iframe-wrap iframe{width:100%;height:600px;border:none}
+.embed-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:400px;color:var(--gd)}
+.embed-placeholder .icon{font-size:48px;margin-bottom:16px;opacity:0.3}
+.embed-placeholder p{font-size:12px;text-align:center;max-width:300px;line-height:1.6}
+.step-list{counter-reset:steps;margin-bottom:18px}
+.step-item{counter-increment:steps;display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;padding:12px 16px;background:var(--gy);border-radius:8px}
+.step-num{background:var(--g1);color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px}
+.step-text{font-size:11px;color:var(--bk);line-height:1.5}
+.step-text strong{color:var(--g1)}
+
+/* FOOTER */
+.footer{text-align:center;padding:16px 36px;font-size:8px;color:var(--gd);border-top:1px solid #E5EDE9;background:#fff;margin-top:8px;letter-spacing:0.3px}
+
+@media(max-width:900px){
+  .main{padding:14px}.header{padding:16px 14px}.tabs{padding:0 14px}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .grid-2,.grid-3,.grid-1-2,.grid-2-1{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div>
+      <h1>Dashboard Nutritionnel</h1>
+      <p>Analyse complète · 1 Menu journalier · 12 aliments · Source CIQUAL 2020 (ANSES)</p>
+    </div>
+    <div class="header-meta">
+      <div class="badge">Portfolio · Dr. [Nom] — PhD Nutrition</div>
+      <div class="vnr-note">VNR : Règlement UE n°1169/2011 · Score équilibre : base recommandations ANSES 2016 · Document fictif</div>
+    </div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showPage('overview',this)">Vue d'ensemble</div>
+  <div class="tab" onclick="showPage('vnr',this)">Couverture VNR</div>
+  <div class="tab" onclick="showPage('repas',this)">Par repas</div>
+  <div class="tab" onclick="showPage('aliments',this)">Par aliment</div>
+  <div class="tab" onclick="showPage('embed',this)">Intégrer Power BI</div>
+</div>
+
+<div class="main">
+
+<!-- ══ PAGE 1 : OVERVIEW ══════════════════════════════════════════════ -->
+<div class="page active" id="page-overview">
+
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Répartition énergétique par repas</div>
+      <div class="card-sub">Contribution de chaque repas aux apports caloriques journaliers</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="chartRepasEnergie"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Macronutriments — répartition % énergétique</div>
+      <div class="card-sub">% de l'énergie totale · Référence ANSES : Prot 15% · Gluc 48% · Lip 38%</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="chartMacrosPct"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Score d'équilibre nutritionnel</div>
+      <div class="card-sub">Indicateur maison 0–100 · base recommandations ANSES 2016 · appliqué au menu journalier</div>
+      <div id="scoreDisplay"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Couverture VNR — vue rapide</div>
+      <div class="card-sub">% des Valeurs Nutritionnelles de Référence atteint sur la journée</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="chartVNRQuick"></canvas></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ PAGE 2 : VNR ══════════════════════════════════════════════════ -->
+<div class="page" id="page-vnr">
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-title">Couverture complète des VNR — Menu journalier</div>
+    <div class="card-sub">Valeurs Nutritionnelles de Référence · Règlement UE n°1169/2011 · Annexe XIII</div>
+    <table class="vnr-table" id="vnrTable"></table>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Macronutriments vs VNR</div>
+      <div class="card-sub">Apports journaliers vs recommandations (g)</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="chartMacrosVNR"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Micronutriments vs VNR</div>
+      <div class="card-sub">Calcium, Fer, Vitamines A, D, C</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="chartMicroVNR"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PAGE 3 : PAR REPAS ════════════════════════════════════════════ -->
+<div class="page" id="page-repas">
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-title">Macronutriments par repas</div>
+    <div class="card-sub">Énergie, protéines, glucides et lipides — contribution de chaque repas</div>
+    <div class="chart-wrap" style="height:280px"><canvas id="chartRepasDetail"></canvas></div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">% Apport journalier par repas</div>
+      <div class="card-sub">Part de chaque repas dans l'apport énergétique total</div>
+      <div class="chart-wrap" style="height:240px"><canvas id="chartRepasPct"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Détail nutritionnel par repas</div>
+      <div class="card-sub">Valeurs absolues par repas</div>
+      <div id="repasTable"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PAGE 4 : PAR ALIMENT ══════════════════════════════════════════ -->
+<div class="page" id="page-aliments">
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-title">Tous les aliments — profil nutritionnel complet</div>
+    <div class="card-sub">Valeurs par portion servie · Source CIQUAL 2020</div>
+    <div style="overflow-x:auto"><table class="alim-table" id="alimTable"></table></div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Top sources de protéines</div>
+      <div class="card-sub">Classement par teneur en protéines (g/portion)</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="chartTopProt"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top sources de fibres</div>
+      <div class="card-sub">Classement par teneur en fibres (g/portion)</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="chartTopFibres"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PAGE 5 : EMBED POWER BI ═══════════════════════════════════════ -->
+<div class="page" id="page-embed">
+  <div class="embed-box">
+    <h3>Intégrer votre dashboard Power BI</h3>
+    <p>Cette page vous permet d'intégrer votre dashboard Power BI publié en ligne directement dans ce fichier HTML — exactement comme le fait ATNI (Access to Nutrition initiative) sur son site web.</p>
+
+    <div class="step-list">
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-text"><strong>Publiez votre rapport sur Power BI Service</strong><br>Dans Power BI Desktop : Fichier → Publier → Publier sur Power BI (nécessite un compte professionnel ou Microsoft 365)</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-text"><strong>Obtenez le lien d'intégration</strong><br>Dans Power BI Service : ouvrez votre rapport → Fichier → Incorporer le rapport → Site web ou portail → copiez le lien <code>src</code> de l'iframe</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-text"><strong>Collez le lien ci-dessous</strong><br>Le dashboard Power BI apparaît ici avec toutes ses interactions (filtres, slicers, drill-down)</div>
+      </div>
+    </div>
+
+    <label style="font-size:10px;font-weight:700;color:var(--gd);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px">Lien d'intégration Power BI (URL iframe src)</label>
+    <input class="embed-input" id="embedUrl" type="text" placeholder="https://app.powerbi.com/reportEmbed?reportId=...">
+    <button class="embed-btn" onclick="loadEmbed()">Afficher le dashboard</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Aperçu du dashboard intégré</div>
+    <div class="card-sub">Votre dashboard Power BI apparaît ici avec toutes les interactions</div>
+    <div class="iframe-wrap" id="iframeWrap">
+      <div class="embed-placeholder">
+        <div class="icon">📊</div>
+        <p>Collez votre lien Power BI ci-dessus et cliquez "Afficher le dashboard" pour voir votre rapport interactif ici.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="embed-box" style="margin-top:18px">
+    <h3>Alternative : Google Looker Studio (sans compte pro)</h3>
+    <p>Si vous n'avez pas de compte Power BI professionnel, Google Looker Studio offre la même fonctionnalité gratuitement avec un compte Gmail :</p>
+    <div class="step-list">
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-text"><strong>Créez votre dashboard sur</strong> <a href="https://lookerstudio.google.com" target="_blank" style="color:var(--g1)">lookerstudio.google.com</a> en connectant votre fichier Google Sheets</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-text"><strong>Partagez → Intégrer le rapport</strong> → copiez le lien iframe et collez-le ci-dessus</div>
+      </div>
+    </div>
+    <label style="font-size:10px;font-weight:700;color:var(--gd);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px">Lien Looker Studio (alternative)</label>
+    <input class="embed-input" id="embedUrl2" type="text" placeholder="https://lookerstudio.google.com/embed/reporting/...">
+    <button class="embed-btn" onclick="loadEmbed2()">Afficher Looker Studio</button>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<div class="footer">
+  Source : Table CIQUAL 2020 (ANSES) · VNR : Règlement UE n°1169/2011 Annexe XIII · Score d'équilibre : indicateur maison base recommandations ANSES 2016 · Document fictif à usage de portfolio · Dr. [Votre Nom] — PhD Nutrition & Analyse de données
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────
+const aliments = [
+  {nom:"Flocons d'avoine",      repas:"Petit-déjeuner",      cat:"Céréales",        kcal:221, prot:6.4,  gluc:34.6, lip:4.7,  sucres:0.6,  fibres:6.7,  ags:0.8,  sel:0.0, ca:31.2,  fe:2.3, vita:0.0,   vitd:0.0, vitc:0.0},
+  {nom:"Lait demi-écrémé",      repas:"Petit-déjeuner",      cat:"Laitiers",        kcal:95,  prot:7.0,  gluc:10.0, lip:3.1,  sucres:9.9,  fibres:0.0,  ags:1.9,  sel:0.2, ca:242.0, fe:0.2, vita:18.5,  vitd:0.3, vitc:4.0},
+  {nom:"Banane",                repas:"Petit-déjeuner",      cat:"Fruits",          kcal:198, prot:2.0,  gluc:44.4, lip:0.6,  sucres:0.0,  fibres:3.5,  ags:0.2,  sel:0.0, ca:4.5,   fe:0.9, vita:57.2,  vitd:0.0, vitc:27.6},
+  {nom:"Amandes",               repas:"Petit-déjeuner",      cat:"Fruits à coque",  kcal:92,  prot:2.8,  gluc:1.4,  lip:7.7,  sucres:0.6,  fibres:1.9,  ags:0.6,  sel:0.0, ca:39.0,  fe:0.5, vita:0.1,   vitd:0.0, vitc:0.1},
+  {nom:"Yaourt nature",         repas:"Collation matin",     cat:"Laitiers",        kcal:129, prot:3.8,  gluc:4.7,  lip:10.2, sucres:3.9,  fibres:0.1,  ags:6.6,  sel:0.1, ca:145.0, fe:0.3, vita:0.0,   vitd:0.0, vitc:2.5},
+  {nom:"Pomme",                 repas:"Collation matin",     cat:"Fruits",          kcal:81,  prot:0.4,  gluc:17.4, lip:0.4,  sucres:15.9, fibres:2.1,  ags:0.1,  sel:0.0, ca:8.0,   fe:0.1, vita:2.7,   vitd:0.0, vitc:6.9},
+  {nom:"Salade maïs-champ.",    repas:"Déjeuner",            cat:"Plat composé",    kcal:293, prot:26.6, gluc:23.1, lip:9.8,  sucres:9.5,  fibres:6.7,  ags:2.5,  sel:1.7, ca:100.3, fe:3.3, vita:309.9, vitd:3.3, vitc:45.7},
+  {nom:"Riz aux légumes",       repas:"Déjeuner",            cat:"Plat composé",    kcal:325, prot:7.3,  gluc:39.2, lip:15.0, sucres:14.4, fibres:9.7,  ags:2.2,  sel:1.7, ca:94.5,  fe:2.5, vita:196.0, vitd:0.2, vitc:110.6},
+  {nom:"Orange",                repas:"Collation après-midi",cat:"Fruits",          kcal:84,  prot:1.5,  gluc:16.1, lip:1.0,  sucres:15.2, fibres:5.4,  ags:0.0,  sel:0.0, ca:132.0, fe:1.1, vita:0.4,   vitd:0.0, vitc:95.0},
+  {nom:"Noix",                  repas:"Collation après-midi",cat:"Fruits à coque",  kcal:106, prot:2.0,  gluc:1.0,  lip:10.1, sucres:0.5,  fibres:1.0,  ags:1.0,  sel:0.0, ca:11.3,  fe:0.3, vita:0.3,   vitd:0.0, vitc:0.1},
+  {nom:"Pâtes carbonara",       repas:"Dîner",               cat:"Plat composé",    kcal:917, prot:32.9, gluc:99.1, lip:41.0, sucres:8.7,  fibres:5.6,  ags:20.1, sel:2.1, ca:175.9, fe:2.4, vita:271.4, vitd:1.2, vitc:1.5},
+  {nom:"Soupe 7 légumes",       repas:"Dîner",               cat:"Plat composé",    kcal:165, prot:3.6,  gluc:18.3, lip:7.8,  sucres:10.7, fibres:6.4,  ags:2.0,  sel:0.6, ca:99.8,  fe:1.4, vita:1441.3,vitd:0.2, vitc:30.9},
+];
+
+const VNR = {kcal:2000,prot:50,gluc:260,lip:70,sucres:90,fibres:25,ags:20,sel:6,ca:800,fe:14,vita:800,vitd:5,vitc:80};
+
+// Totals
+const T = {};
+['kcal','prot','gluc','lip','sucres','fibres','ags','sel','ca','fe','vita','vitd','vitc'].forEach(k => {
+  T[k] = aliments.reduce((s,a)=>s+a[k],0);
+});
+
+// % macros energetiques
+const kcal_prot = T.prot*4, kcal_gluc = T.gluc*4, kcal_lip = T.lip*9, kcal_fib = T.fibres*2;
+const total_mac = kcal_prot+kcal_gluc+kcal_lip+kcal_fib;
+const pct_prot = kcal_prot/total_mac*100;
+const pct_gluc = kcal_gluc/total_mac*100;
+const pct_lip = kcal_lip/total_mac*100;
+
+// Score equilibre ANSES
+function calcScore(pp,pg,pl) {
+  const ref_p=15,ref_g=48,ref_l=38;
+  const ec_p=Math.abs(pp-ref_p), ec_g=Math.abs(pg-ref_g), ec_l=Math.abs(pl-ref_l);
+  const prox_p=Math.max(0,1-(ec_p/ref_p));
+  const prox_g=Math.max(0,1-(ec_g/ref_g));
+  const prox_l=Math.max(0,1-(ec_l/ref_l));
+  return Math.round(prox_p*40+prox_g*30+prox_l*30);
+}
+const SCORE = calcScore(pct_prot,pct_gluc,pct_lip);
+
+const REPAS_LIST = ["Petit-déjeuner","Collation matin","Déjeuner","Collation après-midi","Dîner"];
+const REPAS_COLORS = {"Petit-déjeuner":"#E67E22","Collation matin":"#2E7D52","Déjeuner":"#2980B9","Collation après-midi":"#8B5E3C","Dîner":"#C0392B"};
+
+function repasData(repas, key) {
+  return aliments.filter(a=>a.repas===repas).reduce((s,a)=>s+a[key],0);
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── KPI CARDS ─────────────────────────────────────────────────────────────
+function pctVNR(val,vnr){return Math.round(val/vnr*100)}
+function vnrStatus(pct){return pct>=100?'ok':pct>=75?'warn':'bad'}
+function vnrLabel(pct){return pct>=100?'✓ Couvert':pct>=75?'~ Partiel':'✗ Insuffisant'}
+
+const kpis = [
+  {label:"Énergie totale",val:Math.round(T.kcal),unit:"kcal",vnrKey:'kcal',color:'#E67E22'},
+  {label:"Protéines",val:T.prot.toFixed(1),unit:"g",vnrKey:'prot',color:'#1A5C38'},
+  {label:"Glucides",val:T.gluc.toFixed(1),unit:"g",vnrKey:'gluc',color:'#2980B9'},
+  {label:"Lipides",val:T.lip.toFixed(1),unit:"g",vnrKey:'lip',color:'#8B5E3C'},
+  {label:"Fibres",val:T.fibres.toFixed(1),unit:"g",vnrKey:'fibres',color:'#2E7D52'},
+];
+const kpiGrid = document.getElementById('kpiGrid');
+kpis.forEach(k=>{
+  const pct=pctVNR(T[k.vnrKey],VNR[k.vnrKey]);
+  const st=vnrStatus(pct);
+  kpiGrid.innerHTML+=`<div class="kpi" style="border-top-color:${k.color}">
+    <div class="kpi-label">${k.label}</div>
+    <div class="kpi-val" style="color:${k.color}">${k.val}</div>
+    <div class="kpi-unit">${k.unit} / jour</div>
+    <span class="kpi-vnr ${st}">${vnrLabel(pct)} · ${pct}% VNR</span>
+  </div>`;
+});
+
+// ── VNR TABLE ─────────────────────────────────────────────────────────────
+const vnrRows = [
+  {label:"Énergie",key:'kcal',unit:"kcal",vnr:2000},
+  {label:"Protéines",key:'prot',unit:"g",vnr:50},
+  {label:"Glucides",key:'gluc',unit:"g",vnr:260},
+  {label:"Lipides",key:'lip',unit:"g",vnr:70},
+  {label:"Sucres",key:'sucres',unit:"g",vnr:90},
+  {label:"Fibres alimentaires",key:'fibres',unit:"g",vnr:25},
+  {label:"Acides gras saturés",key:'ags',unit:"g",vnr:20},
+  {label:"Sel",key:'sel',unit:"g",vnr:6},
+  {label:"Calcium",key:'ca',unit:"mg",vnr:800},
+  {label:"Fer",key:'fe',unit:"mg",vnr:14},
+  {label:"Vitamine A",key:'vita',unit:"µg",vnr:800},
+  {label:"Vitamine D",key:'vitd',unit:"µg",vnr:5},
+  {label:"Vitamine C",key:'vitc',unit:"mg",vnr:80},
+];
+const vnrTable = document.getElementById('vnrTable');
+vnrTable.innerHTML=`<thead><tr>
+  <th style="width:180px">Nutriment</th>
+  <th>Total journalier</th>
+  <th>VNR adulte</th>
+  <th style="width:200px">% Couverture</th>
+  <th>Statut</th>
+  <th>Note</th>
+</tr></thead><tbody>`+
+vnrRows.map(r=>{
+  const tot=T[r.key];
+  const pct=Math.round(tot/r.vnr*100);
+  const st=vnrStatus(pct);
+  const barColor=st==='ok'?'#1A5C38':st==='warn'?'#E67E22':'#C0392B';
+  const barW=Math.min(pct,150);
+  const note=pct>150?`⚠ Excès (${pct}%)`:pct>=100?'Apport suffisant':pct>=75?'Apport partiel':'Apport insuffisant';
+  return `<tr>
+    <td style="font-weight:600">${r.label}</td>
+    <td><strong>${tot.toFixed(1)}</strong> ${r.unit}</td>
+    <td style="color:#2980B9">${r.vnr} ${r.unit}</td>
+    <td>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="progress-wrap" style="flex:1"><div class="progress-bar" style="width:${Math.min(barW,100)}%;background:${barColor}"></div></div>
+        <span style="font-weight:700;color:${barColor};font-size:10px;width:42px;text-align:right">${pct}%</span>
+      </div>
+    </td>
+    <td><span class="status-${st}">${vnrLabel(pct)}</span></td>
+    <td style="font-size:9px;color:#888">${note}</td>
+  </tr>`;
+}).join('')+'</tbody>';
+
+// ── ALIMENTS TABLE ────────────────────────────────────────────────────────
+const tagClass={"Petit-déjeuner":"tag-pdj","Collation matin":"tag-col","Déjeuner":"tag-dej","Collation après-midi":"tag-cap","Dîner":"tag-din"};
+document.getElementById('alimTable').innerHTML=`<thead><tr>
+  <th>Aliment</th><th>Repas</th><th>Catégorie</th>
+  <th>Énergie (kcal)</th><th>Prot (g)</th><th>Gluc (g)</th><th>Lip (g)</th>
+  <th>Fibres (g)</th><th>Sucres (g)</th><th>AGS (g)</th><th>Sel (g)</th>
+  <th>Ca (mg)</th><th>Fe (mg)</th><th>Vit A (µg)</th><th>Vit D (µg)</th><th>Vit C (mg)</th>
+</tr></thead><tbody>`+
+aliments.map(a=>`<tr>
+  <td>${a.nom}</td>
+  <td><span class="repas-tag ${tagClass[a.repas]}">${a.repas}</span></td>
+  <td>${a.cat}</td>
+  <td>${a.kcal}</td><td>${a.prot.toFixed(1)}</td><td>${a.gluc.toFixed(1)}</td><td>${a.lip.toFixed(1)}</td>
+  <td>${a.fibres.toFixed(1)}</td><td>${a.sucres.toFixed(1)}</td><td>${a.ags.toFixed(1)}</td><td>${a.sel.toFixed(1)}</td>
+  <td>${a.ca.toFixed(1)}</td><td>${a.fe.toFixed(1)}</td><td>${a.vita.toFixed(1)}</td><td>${a.vitd.toFixed(1)}</td><td>${a.vitc.toFixed(1)}</td>
+</tr>`).join('')+'</tbody>';
+
+// ── REPAS TABLE ───────────────────────────────────────────────────────────
+document.getElementById('repasTable').innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:9px">
+<thead><tr style="background:var(--g2);color:#fff">
+  <th style="padding:7px 8px;text-align:left">Repas</th>
+  <th style="padding:7px 8px">Kcal</th><th style="padding:7px 8px">Prot(g)</th>
+  <th style="padding:7px 8px">Gluc(g)</th><th style="padding:7px 8px">Lip(g)</th><th style="padding:7px 8px">Fibres(g)</th>
+</tr></thead><tbody>`+
+REPAS_LIST.map((r,i)=>`<tr style="background:${i%2===0?'#fff':'#F5F5F5'}">
+  <td style="padding:6px 8px;font-weight:600">${r}</td>
+  <td style="padding:6px 8px;text-align:center">${repasData(r,'kcal').toFixed(0)}</td>
+  <td style="padding:6px 8px;text-align:center">${repasData(r,'prot').toFixed(1)}</td>
+  <td style="padding:6px 8px;text-align:center">${repasData(r,'gluc').toFixed(1)}</td>
+  <td style="padding:6px 8px;text-align:center">${repasData(r,'lip').toFixed(1)}</td>
+  <td style="padding:6px 8px;text-align:center">${repasData(r,'fibres').toFixed(1)}</td>
+</tr>`).join('')+'</tbody></table>';
+
+// ── SCORE DISPLAY ─────────────────────────────────────────────────────────
+const scoreColor=SCORE>=70?'#1A5C38':SCORE>=50?'#E67E22':'#C0392B';
+const scoreLabel=SCORE>=70?'Bon':SCORE>=50?'Moyen':'Faible';
+document.getElementById('scoreDisplay').innerHTML=`
+  <div style="display:flex;align-items:center;gap:24px;padding:16px 0">
+    <div style="text-align:center">
+      <div style="font-size:64px;font-weight:800;color:${scoreColor};line-height:1">${SCORE}</div>
+      <div style="font-size:11px;color:#888;margin-top:2px">/ 100</div>
+      <div style="font-size:12px;font-weight:700;color:${scoreColor};margin-top:4px">${scoreLabel}</div>
+    </div>
+    <div style="flex:1">
+      ${[{label:"Protéines",pct:pct_prot,ref:15},{label:"Glucides",pct:pct_gluc,ref:48},{label:"Lipides",pct:pct_lip,ref:38}].map(m=>{
+        const ec=Math.abs(m.pct-m.ref).toFixed(1);
+        const prox=Math.max(0,1-(Math.abs(m.pct-m.ref)/m.ref));
+        const c=prox>=0.7?'#1A5C38':prox>=0.4?'#E67E22':'#C0392B';
+        return `<div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+            <span style="font-size:10px;font-weight:600">${m.label} · ${m.pct.toFixed(1)}% <span style="color:#888;font-weight:400">(réf ${m.ref}%)</span></span>
+            <span style="font-size:9px;color:${c};font-weight:700">écart ${ec}%</span>
+          </div>
+          <div style="background:#EEE;border-radius:4px;height:7px;overflow:hidden">
+            <div style="height:100%;width:${prox*100}%;background:${c};border-radius:4px;transition:width 1s"></div>
+          </div>
+        </div>`;
+      }).join('')}
+      <div style="font-size:9px;color:#888;margin-top:8px;font-style:italic">* Score indicatif maison · base ANSES 2016 · s'applique à l'apport journalier total</div>
+    </div>
+  </div>`;
+
+// ── CHARTS ────────────────────────────────────────────────────────────────
+const FONT='Montserrat';
+
+// Chart 1: Énergie par repas (doughnut)
+new Chart(document.getElementById('chartRepasEnergie'),{
+  type:'doughnut',
+  data:{
+    labels:REPAS_LIST,
+    datasets:[{data:REPAS_LIST.map(r=>repasData(r,'kcal').toFixed(0)),backgroundColor:Object.values(REPAS_COLORS),borderWidth:2,borderColor:'#fff'}]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'right',labels:{font:{family:FONT,size:10},boxWidth:12,padding:10}},
+      tooltip:{callbacks:{label:c=>`${c.label}: ${c.raw} kcal (${Math.round(c.raw/T.kcal*100)}%)`}}}}
+});
+
+// Chart 2: Macros % energetique
+new Chart(document.getElementById('chartMacrosPct'),{
+  type:'bar',
+  data:{
+    labels:['Protéines','Glucides','Lipides'],
+    datasets:[
+      {label:'Menu journalier',data:[pct_prot.toFixed(1),pct_gluc.toFixed(1),pct_lip.toFixed(1)],backgroundColor:['#1A5C38','#2980B9','#E67E22'],borderRadius:6},
+      {label:'Réf ANSES',data:[15,48,38],backgroundColor:['rgba(26,92,56,0.2)','rgba(41,128,185,0.2)','rgba(230,126,34,0.2)'],borderColor:['#1A5C38','#2980B9','#E67E22'],borderWidth:2,borderRadius:6,type:'bar'}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{font:{family:FONT,size:10},boxWidth:12}}},
+    scales:{y:{beginAtZero:true,max:70,grid:{color:'#F0F0F0'},ticks:{font:{family:FONT,size:10},callback:v=>v+'%'}},
+      x:{grid:{display:false},ticks:{font:{family:FONT,size:10}}}}}
+});
+
+// Chart 3: VNR quick
+const vnrQuickKeys=['kcal','prot','gluc','lip','fibres','ca','fe','vitc'];
+const vnrQuickLabels=['Énergie','Protéines','Glucides','Lipides','Fibres','Calcium','Fer','Vit C'];
+const vnrQuickPct=vnrQuickKeys.map(k=>Math.min(Math.round(T[k]/VNR[k]*100),200));
+new Chart(document.getElementById('chartVNRQuick'),{
+  type:'bar',
+  data:{
+    labels:vnrQuickLabels,
+    datasets:[{
+      label:'% VNR atteint',
+      data:vnrQuickPct,
+      backgroundColor:vnrQuickPct.map(v=>v>=100?'#1A5C38':v>=75?'#E67E22':'#C0392B'),
+      borderRadius:5
+    }]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw}% VNR`}}},
+    scales:{y:{beginAtZero:true,max:220,grid:{color:'#F0F0F0'},ticks:{font:{family:FONT,size:9},callback:v=>v+'%'}},
+      x:{grid:{display:false},ticks:{font:{family:FONT,size:9}}}},
+    annotation:{annotations:{line100:{type:'line',yMin:100,yMax:100,borderColor:'#1A5C38',borderWidth:1.5,borderDash:[4,4]}}}}
+});
+
+// Chart 4: Macros vs VNR
+new Chart(document.getElementById('chartMacrosVNR'),{
+  type:'bar',
+  data:{
+    labels:['Énergie\n(/10)','Protéines','Glucides\n(/4)','Lipides','Fibres','Sel','AGS'],
+    datasets:[
+      {label:'Menu journalier',data:[T.kcal/10,T.prot,T.gluc/4,T.lip,T.fibres,T.sel,T.ags],backgroundColor:'#1A5C38',borderRadius:4},
+      {label:'VNR',data:[200,50,65,70,25,6,20],backgroundColor:'rgba(41,128,185,0.3)',borderColor:'#2980B9',borderWidth:1.5,borderRadius:4}
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{font:{family:FONT,size:10},boxWidth:12}},
+      tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.raw}`}}},
+    scales:{y:{beginAtZero:true,grid:{color:'#F0F0F0'},ticks:{font:{family:FONT,size:9}}},
+      x:{grid:{display:false},ticks:{font:{family:FONT,size:9},maxRotation:0}}}}
+});
+
+// Chart 5: Micros vs VNR
+new Chart(document.getElementById('chartMicroVNR'),{
+  type:'radar',
+  data:{
+    labels:['Calcium\n(mg)','Fer\n(mg)','Vit A\n(µg)','Vit D\n(µg)','Vit C\n(mg)'],
+    datasets:[{
+      label:'% VNR atteint',
+      data:[
+        Math.min(Math.round(T.ca/800*100),150),
+        Math.min(Math.round(T.fe/14*100),150),
+        Math.min(Math.round(T.vita/800*100),150),
+        Math.min(Math.round(T.vitd/5*100),150),
+        Math.min(Math.round(T.vitc/80*100),150),
+      ],
+      backgroundColor:'rgba(26,92,56,0.15)',
+      borderColor:'#1A5C38',
+      pointBackgroundColor:'#1A5C38',
+      borderWidth:2
+    },{
+      label:'Objectif 100%',
+      data:[100,100,100,100,100],
+      backgroundColor:'transparent',
+      borderColor:'rgba(41,128,185,0.4)',
+      borderDash:[4,4],
+      borderWidth:1.5,
+      pointRadius:0
+    }]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{font:{family:FONT,size:10},boxWidth:12}}},
+    scales:{r:{beginAtZero:true,max:160,ticks:{font:{family:FONT,size:8},stepSize:40,callback:v=>v+'%'},pointLabels:{font:{family:FONT,size:9}},grid:{color:'#E5E5E5'}}}}
+});
+
+// Chart 6: Repas detail
+new Chart(document.getElementById('chartRepasDetail'),{
+  type:'bar',
+  data:{
+    labels:REPAS_LIST,
+    datasets:[
+      {label:'Énergie (kcal/10)',data:REPAS_LIST.map(r=>(repasData(r,'kcal')/10).toFixed(1)),backgroundColor:'#E67E22',borderRadius:4},
+      {label:'Glucides (g)',data:REPAS_LIST.map(r=>repasData(r,'gluc').toFixed(1)),backgroundColor:'#2980B9',borderRadius:4},
+      {label:'Protéines (g)',data:REPAS_LIST.map(r=>repasData(r,'prot').toFixed(1)),backgroundColor:'#1A5C38',borderRadius:4},
+      {label:'Lipides (g)',data:REPAS_LIST.map(r=>repasData(r,'lip').toFixed(1)),backgroundColor:'#8B5E3C',borderRadius:4},
+    ]
+  },
+  options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{font:{family:FONT,size:10},boxWidth:12,padding:12}}},
+    scales:{y:{beginAtZero:true,grid:{color:'#F0F0F0'},ticks:{font:{family:FONT,size:10}}},
+      x:{grid:{display:false},ticks:{font:{family:FONT,size:10}}}}}
+});
+
+// Chart 7: Repas % énergie
+new Chart(document.getElementById('chartRepasPct'),{
+  type:'doughnut',
+  data:{
+    labels:REPAS_LIST,
+    datasets:[{
+      data:REPAS_LIST.map(r=>repasData(r,'kcal').toFixed(0)),
+      backgroundColor:Object.values(REPAS_COLORS),
+      borderWidth:2,borderColor:'#fff'
+    }]
+  },
+  options:{responsive:true,maintainAspectRatio:false,cutout:'60%',
+    plugins:{legend:{position:'bottom',labels:{font:{family:FONT,size:10},boxWidth:12}},
+      tooltip:{callbacks:{label:c=>`${c.label}: ${Math.round(c.raw/T.kcal*100)}%`}}}}
+});
+
+// Chart 8: Top protéines
+const sortProt=[...aliments].sort((a,b)=>b.prot-a.prot).slice(0,8);
+new Chart(document.getElementById('chartTopProt'),{
+  type:'bar',data:{
+    labels:sortProt.map(a=>a.nom.length>18?a.nom.slice(0,16)+'…':a.nom),
+    datasets:[{label:'Protéines (g)',data:sortProt.map(a=>a.prot),backgroundColor:'#1A5C38',borderRadius:5}]
+  },
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{x:{grid:{color:'#F0F0F0'},ticks:{font:{family:FONT,size:9}}},y:{grid:{display:false},ticks:{font:{family:FONT,size:9}}}}}
+});
+
+// Chart 9: Top fibres
+const sortFib=[...aliments].sort((a,b)=>b.fibres-a.fibres).slice(0,8);
+new Chart(document.getElementById('chartTopFibres'),{
+  type:'bar',data:{
+    labels:sortFib.map(a=>a.nom.length>18?a.nom.slice(0,16)+'…':a.nom),
+    datasets:[{label:'Fibres (g)',data:sortFib.map(a=>a.fibres),backgroundColor:'#2E7D52',borderRadius:5}]
+  },
+  options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{x:{grid:{color:'#F0F0F0'},ticks:{font:{family:FONT,size:9}}},y:{grid:{display:false},ticks:{font:{family:FONT,size:9}}}}}
+});
+
+// ── EMBED FUNCTIONS ───────────────────────────────────────────────────────
+function loadEmbed(){
+  const url=document.getElementById('embedUrl').value.trim();
+  if(!url){alert('Veuillez coller un lien Power BI valide');return;}
+  document.getElementById('iframeWrap').innerHTML=`<iframe src="${url}" allowFullScreen="true"></iframe>`;
+}
+function loadEmbed2(){
+  const url=document.getElementById('embedUrl2').value.trim();
+  if(!url){alert('Veuillez coller un lien Looker Studio valide');return;}
+  document.getElementById('iframeWrap').innerHTML=`<iframe src="${url}" allowFullScreen="true"></iframe>`;
+}
+</script>
+</body>
+</html>
